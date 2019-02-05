@@ -129,7 +129,7 @@ EXAMPLES
 		%s/aXZI
 		~$ firefox %s/aXZI
 
-	Paste the file bin/myscript and plumb the link from Plan 9:
+	Paste the file bin/rc/myscript and plumb the link from Plan 9:
 
 		%% cat bin/rc/myscript | hpost -u %s -p / %s@/fd/0
 		%s/aXZI
