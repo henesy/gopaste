@@ -52,6 +52,8 @@ func main() {
 	r.HandleFunc("/{pasteId}", handleView).Methods("GET")
 
 	http.Handle("/", r)
+
+	log.Printf("Listening on tcp!*!%s.\n", port[1:])
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
