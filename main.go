@@ -1,47 +1,44 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-	"io/ioutil"
-	"net/http"
 	"crypto/sha1"
 	"encoding/base64"
 	"flag"
-	"log"
+	"fmt"
 	"github.com/gorilla/mux"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"strings"
 )
-
 
 // Global variables
 var (
-	ROOT_PATH string
-	PASTE_PATH string
-	TMPLT_PATH string
-	MAN_TITLE string
-	LISTEN_PORT string
-	FORM_VALUE string
+	rootPath  string
+	pastePath string
+	tmplPath  string
+	manTitle  string
+	port      string
+	formVal   string
 )
-
 
 // Webpage template
 type Template struct {
-	Key string
+	Key  string
 	Body []byte
 	Lang string
 }
 
-
 // Host a pastebin-like service
 func main() {
-	flag.StringVar(&ROOT_PATH, "r", "./", "Website root directory")
-	flag.StringVar(&LISTEN_PORT, "p", ":8001", "Web server port to host on")
-	flag.StringVar(&FORM_VALUE, "v", "paste", "Form value that appears in 'paste=<-' style form values")
-	flag.StringVar(&MAN_TITLE, "m", "isepaste", "Title of man page printed on landing page")
+	flag.StringVar(&rootPath, "r", "./", "Website root directory")
+	flag.StringVar(&port, "p", ":8001", "Web server port to host on")
+	flag.StringVar(&formVal, "v", "paste", "Form value that appears in 'paste=<-' style form values")
+	flag.StringVar(&manTitle, "m", "isepaste", "Title of man page printed on landing page")
 	flag.Parse()
 
-	PASTE_PATH = ROOT_PATH + "/pastes/"
-	TMPLT_PATH = ROOT_PATH + "/static/"
+	pastePath = rootPath + "/pastes/"
+	tmplPath = rootPath + "/static/"
 
 	r := mux.NewRouter()
 
@@ -50,25 +47,23 @@ func main() {
 
 	// Posting a paste
 	r.HandleFunc("/", handlePaste).Methods("POST")
-	
+
 	// Reading a paste
 	r.HandleFunc("/{pasteId}", handleView).Methods("GET")
 
 	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe(LISTEN_PORT, nil))
+	log.Fatal(http.ListenAndServe(port, nil))
 }
-
 
 // Landing page handler
 func handleLand(w http.ResponseWriter, r *http.Request) {
 	SITE_URL := "http://" + r.Host
-	fmt.Fprintf(w, man, strings.ToLower(MAN_TITLE), strings.ToUpper(MAN_TITLE), strings.ToLower(MAN_TITLE), strings.ToLower(MAN_TITLE), FORM_VALUE, SITE_URL, FORM_VALUE, SITE_URL, SITE_URL, SITE_URL)
+	fmt.Fprintf(w, man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, SITE_URL, formVal, SITE_URL, SITE_URL, SITE_URL)
 }
-
 
 // Paste path handler — for writing
 func handlePaste(w http.ResponseWriter, r *http.Request) {
-	paste := r.FormValue(FORM_VALUE)
+	paste := r.FormValue(formVal)
 
 	// Generate hash to use as filename/key
 	// hash is base64 encoding of the first 72 bits of sha1(paste)
@@ -78,7 +73,7 @@ func handlePaste(w http.ResponseWriter, r *http.Request) {
 	key := base64.URLEncoding.EncodeToString(keyHash[:9])
 
 	// Save our paste
-	f := PASTE_PATH + key + ".paste"
+	f := pastePath + key + ".paste"
 	err := ioutil.WriteFile(f, []byte(paste), 0600)
 	if err != nil {
 		fmt.Fprintf(w, "%s", err)
@@ -89,12 +84,11 @@ func handlePaste(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", u)
 }
 
-
 // View path handler — for reading
 func handleView(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["pasteId"]
-	file := PASTE_PATH + key + ".paste"
+	file := pastePath + key + ".paste"
 
 	paste, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -129,4 +123,3 @@ EXAMPLES
 SOURCE
 	https://github.com/ISEAGE-ISU/gopaste
 `
-
