@@ -22,6 +22,7 @@ var (
 	formVal		string
 	proto		string = "http://"
 	manCache	map[string]string
+	maxB		int64
 )
 
 // Webpage template
@@ -37,6 +38,7 @@ func main() {
 	flag.StringVar(&port, "p", ":8001", "Web server port to host on")
 	flag.StringVar(&formVal, "v", "paste", "Form value that appears in 'paste=<-' style form values")
 	flag.StringVar(&manTitle, "m", "isepaste", "Title of man page printed on landing page")
+	flag.Int64Var(&maxB, "s", 10000000, "Max file size in bytes")
 	flag.Parse()
 
 	pastePath	= rootPath + "/pastes/"
@@ -72,6 +74,8 @@ func handleLand(w http.ResponseWriter, r *http.Request) {
 
 // Paste path handler — for writing
 func handlePaste(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxB)
+
 	paste := r.FormValue(formVal)
 
 	// Generate hash to use as filename/key
