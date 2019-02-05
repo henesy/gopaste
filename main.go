@@ -14,12 +14,14 @@ import (
 
 // Global variables
 var (
-	rootPath  string
-	pastePath string
-	tmplPath  string
-	manTitle  string
-	port      string
-	formVal   string
+	rootPath	string
+	pastePath	string
+	tmplPath	string
+	manTitle	string
+	port		string
+	formVal		string
+	proto		string = "http://"
+	manCache	map[string]string
 )
 
 // Webpage template
@@ -37,8 +39,9 @@ func main() {
 	flag.StringVar(&manTitle, "m", "isepaste", "Title of man page printed on landing page")
 	flag.Parse()
 
-	pastePath = rootPath + "/pastes/"
-	tmplPath = rootPath + "/static/"
+	pastePath	= rootPath + "/pastes/"
+	tmplPath	= rootPath + "/static/"
+	manCache	= make(map[string]string)
 
 	r := mux.NewRouter()
 
@@ -59,8 +62,12 @@ func main() {
 
 // Landing page handler
 func handleLand(w http.ResponseWriter, r *http.Request) {
-	url := "http://" + r.Host
-	fmt.Fprintf(w, man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url)
+	if manCache[r.Host] == "" {		
+		url := proto + r.Host
+		manCache[r.Host] = fmt.Sprintf(man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url, url, formVal, url, url)
+	}
+
+	fmt.Fprint(w, manCache[r.Host])
 }
 
 // Paste path handler — for writing
@@ -82,7 +89,7 @@ func handlePaste(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u := "http://" + r.Host + "/" + key
+	u := proto + r.Host + "/" + key
 	fmt.Fprintf(w, "%s\n", u)
 }
 
@@ -104,7 +111,7 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 }
 
 // Manual for port landing page printing
-var man string = `%s(1)                          %s                          %s(1)
+const man string = `%s(1)                          %s                          %s(1)
 
 NAME
 	%s: command line pastebin.
@@ -116,11 +123,17 @@ DESCRIPTION
 	Paste to a listening plaintext paste server.
 
 EXAMPLES
-	Paste the file bin/myscript and open the link in firefox(1):
+	Paste the file bin/myscript and open the link in firefox(1) from unix:
 
 		~$ cat bin/myscript | curl -F '%s=<-' %s
 		%s/aXZI
 		~$ firefox %s/aXZI
+
+	Paste the file bin/myscript and plumb the link from Plan 9:
+
+		%% cat bin/rc/myscript | hpost -u %s -p / %s@/fd/0
+		%s/aXZI
+		%% plumb %s/aXZI
 
 SOURCE
 	https://github.com/ISEAGE-ISU/gopaste
