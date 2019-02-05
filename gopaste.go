@@ -73,7 +73,7 @@ func main() {
 -------------------------------------*/
 
 func handleLand(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, man, strings.ToLower(MAN_TITLE), strings.ToUpper(MAN_TITLE), strings.ToLower(MAN_TITLE), FORM_VALUE, SITE_URL, LISTEN_PORT, FORM_VALUE, SITE_URL, SITE_URL, SITE_URL)
+	fmt.Fprintf(w, man, strings.ToLower(MAN_TITLE), strings.ToUpper(MAN_TITLE), strings.ToLower(MAN_TITLE), strings.ToLower(MAN_TITLE), FORM_VALUE, SITE_URL, LISTEN_PORT, FORM_VALUE, SITE_URL, SITE_URL, SITE_URL)
 }
 
 
@@ -128,20 +128,22 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 var man string = `%s(1)                          %s                          %s(1)
 
 NAME
-    isepaste: command line pastebin.
+	%s: command line pastebin.
 
 SYNOPSIS
-    <command> | curl -F '%s=<-' %s%s/
+	<command> | curl -F '%s=<-' %s%s/
 
 DESCRIPTION
-	Paste to a listening plaintext bin server.
+	Paste to a listening plaintext paste server.
 
 EXAMPLES
-    ~$ cat bin/myscript | curl -F '%s=<-' %s
-       %s/aXZI
-    ~$ firefox %s/aXZI
+	Paste the file bin/myscript and open the link in firefox(1):
 
-SEE ALSO
+		~$ cat bin/myscript | curl -F '%s=<-' %s
+		%s/aXZI
+		~$ firefox %s/aXZI
+
+SOURCE
 	https://github.com/ISEAGE-ISU/gopaste
 `
 
