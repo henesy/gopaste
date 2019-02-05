@@ -2,22 +2,29 @@
 
 __Simple command line pastebin-esque site for personal use.__
 
-Using Gorilla Toolkit [Mux](http://www.gorillatoolkit.org/pkg/mux) for routing.
+## Dependencies
+
+Vendoring Gorilla [Mux](http://www.gorillatoolkit.org/pkg/mux) for routing.
 
 ## Build
 
- - `go build`
+ - `go build -mod=vendor`
 
 ## Usage
 
-`cat file-to-upload.txt | curl -F 'paste=<-' http://your-site`
+Upload myfile.txt and receive the URL back.
 
-I like to add ``` | xargs firefox``` to the end to open it in firefox
+	cat myfile.txt | curl -F 'paste=<-' http://your-site
+
+You can add ` | xargs firefox` to the end to open it in firefox, etc.
 
 A plaintext response is served.
 
+The landing page provides a man(1)-style manual page for reference by users.
+
 ## Thanks
 
-Thanks for http://sprunge.us for the idea which I shamelessly copied. Thanks to Gorilla Toolkit for 
-the awesome Golang http extensions.
+Thanks for http://sprunge.us for the idea which I shamelessly copied.
+
+Thanks to Gorilla Toolkit for the awesome Golang http extensions.
 
