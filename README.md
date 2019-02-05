@@ -1,6 +1,6 @@
 # GoPaste
 
-__Simple command line pastebin-esque site for personal use.__
+Simple command line pastebin-esque site for personal use.
 
 ## Dependencies
 
