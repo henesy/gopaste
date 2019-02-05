@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"strings"
-	"bytes"
 	"io/ioutil"
 	"net/http"
-	"html/template"
 	"crypto/sha1"
 	"encoding/base64"
 	"flag"
@@ -26,10 +24,6 @@ var (
 	LISTEN_PORT string
 
 	FORM_VALUE string
-
-	LANGS = []string{"markup", "html", "css", "clike", "javascript", "java",
-		"php", "scss", "bash", "c", "cpp", "python", "sql", "ruby", "csharp",
-		"go", "haskell", "objectivec", "apacheconf"}
 )
 
 
@@ -122,46 +116,15 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 	paste, err := ioutil.ReadFile(file)
 	if err != nil {
 		fmt.Fprintf(w, "[%s] not found", key)
-	}
-
-	// If no lang query is set, just sent back plain text
-	lang, ok := r.URL.Query()["lang"]
-	if !ok {
-		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintf(w, "%s", paste)
 		return
 	}
-
-	// Try to load the template. Send plain text if err
-	tmpl, err := template.ParseFiles(TMPLT_PATH + "template.html")
-	if err != nil {
-		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintf(w, "%s\n\n%s", err, paste)
-		return
-	}
-
-	// If the Lang is a valid lang, then load the template
-	l := strings.ToLower(lang[0])
-	for _, validLang := range LANGS {
-		if l == validLang {
-			t := Template{Key: key, Body: paste, Lang: l}
-			tmpl.Execute(w, t)
-			return
-		}
-	}
-
-	// Else just return plain text with error
-	var errbuf bytes.Buffer
-	errbuf.WriteString("########################################\n\n")
-	errbuf.WriteString("INVALID LANG! valid langs are:\n")
-	fmt.Fprintf(&errbuf, "%v\n\n", LANGS)	
-	errbuf.WriteString("########################################\n")
 
 	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, "%s\n\n%s", errbuf.String(), paste)
+	fmt.Fprintf(w, "%s", paste)
+	return
 }
 
-// Manual for port 80 printing
+// Manual for port landing page printing
 var man string = `%s(1)                          %s                          %s(1)
 
 NAME
@@ -171,12 +134,12 @@ SYNOPSIS
     <command> | curl -F '%s=<-' %s%s/
 
 DESCRIPTION
-    add ?lang=<lang> to resulting url for line numbers and syntax highlighting
+	Paste to a listening plaintext bin server.
 
 EXAMPLES
     ~$ cat bin/myscript | curl -F '%s=<-' %s
        %s/aXZI
-    ~$ firefox %s/aXZI?py#n-7
+    ~$ firefox %s/aXZI
 
 SEE ALSO
 	https://github.com/ISEAGE-ISU/gopaste
