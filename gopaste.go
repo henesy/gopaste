@@ -19,10 +19,7 @@ var (
 	PASTE_PATH string
 	TMPLT_PATH string
 	MAN_TITLE string
-
-	SITE_URL string
 	LISTEN_PORT string
-
 	FORM_VALUE string
 )
 
@@ -35,13 +32,9 @@ type Template struct {
 }
 
 
-/*-------------------------------------
-	Main
--------------------------------------*/
-
+// Host a pastebin-like service
 func main() {
 	flag.StringVar(&ROOT_PATH, "r", "./", "Website root directory")
-	flag.StringVar(&SITE_URL, "s", "http://paste.iseage.org", "Website base url for paste output")
 	flag.StringVar(&LISTEN_PORT, "p", ":8001", "Web server port to host on")
 	flag.StringVar(&FORM_VALUE, "v", "paste", "Form value that appears in 'paste=<-' style form values")
 	flag.StringVar(&MAN_TITLE, "m", "isepaste", "Title of man page printed on landing page")
@@ -63,24 +56,17 @@ func main() {
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(LISTEN_PORT, nil))
-
-	fmt.Println("Good bye! ☺")
 }
 
 
-/*-------------------------------------
-	Landing Handler
--------------------------------------*/
-
+// Landing page handler
 func handleLand(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, man, strings.ToLower(MAN_TITLE), strings.ToUpper(MAN_TITLE), strings.ToLower(MAN_TITLE), strings.ToLower(MAN_TITLE), FORM_VALUE, SITE_URL, LISTEN_PORT, FORM_VALUE, SITE_URL, SITE_URL, SITE_URL)
+	SITE_URL := "http://" + r.Host
+	fmt.Fprintf(w, man, strings.ToLower(MAN_TITLE), strings.ToUpper(MAN_TITLE), strings.ToLower(MAN_TITLE), strings.ToLower(MAN_TITLE), FORM_VALUE, SITE_URL, FORM_VALUE, SITE_URL, SITE_URL, SITE_URL)
 }
 
 
-/*-------------------------------------
-	Paste Handler
--------------------------------------*/
-
+// Paste path handler — for writing
 func handlePaste(w http.ResponseWriter, r *http.Request) {
 	paste := r.FormValue(FORM_VALUE)
 
@@ -99,15 +85,12 @@ func handlePaste(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u := SITE_URL + "/" + key
+	u := "http://" + r.Host + "/" + key
 	fmt.Fprintf(w, "%s\n", u)
 }
 
 
-/*-------------------------------------
-	View Handler	
--------------------------------------*/
-
+// View path handler — for reading
 func handleView(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["pasteId"]
@@ -131,7 +114,7 @@ NAME
 	%s: command line pastebin.
 
 SYNOPSIS
-	<command> | curl -F '%s=<-' %s%s/
+	<command> | curl -F '%s=<-' %s/
 
 DESCRIPTION
 	Paste to a listening plaintext paste server.
