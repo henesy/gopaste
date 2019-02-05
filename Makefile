@@ -4,8 +4,9 @@ TARGET=gopaste
 all: main.go
 	GOPATH=$(shell pwd)/gopath go build -mod=vendor
 
+# Copy cleanup manually — this allows more stable config within the script
 install: gopaste
-	cp gopaste cleanup.sh $(BIN)/
+	cp gopaste $(BIN)/
 	setcap 'cap_net_bind_service=+ep' $(BIN)/$(TARGET)
 
 clean:
