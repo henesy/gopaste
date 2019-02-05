@@ -7,6 +7,7 @@ all: main.go
 
 install: gopaste
 	cp gopaste cleanup.sh $(BIN)/
+	setcap 'cap_net_bind_service=+ep' $(BIN)/$(TARGET)
 
 clean:
 	go clean
