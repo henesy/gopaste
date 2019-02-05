@@ -1,7 +1,7 @@
 BIN=/usr/local/bin
 TARGET=gopaste
 
-all: gopaste.go
+all: main.go
 	go build
 
 install: gopaste
