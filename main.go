@@ -57,8 +57,8 @@ func main() {
 
 // Landing page handler
 func handleLand(w http.ResponseWriter, r *http.Request) {
-	SITE_URL := "http://" + r.Host
-	fmt.Fprintf(w, man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, SITE_URL, formVal, SITE_URL, SITE_URL, SITE_URL)
+	url := "http://" + r.Host
+	fmt.Fprintf(w, man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url)
 }
 
 // Paste path handler — for writing
