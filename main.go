@@ -20,7 +20,7 @@ var (
 	manTitle	string
 	port		string
 	formVal		string
-	proto		string = "http://"
+	proto		string = "https://"
 	manCache	map[string]string
 	maxB		int64
 )
