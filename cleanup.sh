@@ -2,7 +2,7 @@
 # Clean up files older than $TIME days or so
 
 TIME=31
-WEBROOT=/var/www/paste
+WEBROOT=/var/www/paste/pastes
 
 find $WEBROOT -type f -mtime +$TIME -name '*.paste' -execdir rm -- '{}' \;
 
