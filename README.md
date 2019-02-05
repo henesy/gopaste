@@ -21,8 +21,3 @@ A plaintext response is served.
 Thanks for http://sprunge.us for the idea which I shamelessly copied. Thanks to Gorilla Toolkit for 
 the awesome Golang http extensions.
 
-## Disclaimer
-
-I'm not responsible for any personal injuries (or any other damages) caused
-by this software.
-

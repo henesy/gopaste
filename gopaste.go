@@ -9,7 +9,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"log"
-	"./mux"				// https://github.com/gorilla/mux
+	"github.com/gorilla/mux"
 )
 
 
