@@ -20,7 +20,7 @@ var (
 	manTitle	string
 	port		string
 	formVal		string
-	proto		string = "https://"
+	proto		string = "http://"
 	manCache	map[string]string
 	maxB		int64
 )
@@ -109,7 +109,7 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	fmt.Fprintf(w, "%s", paste)
 	return
 }
