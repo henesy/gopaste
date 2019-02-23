@@ -66,7 +66,7 @@ func main() {
 func handleLand(w http.ResponseWriter, r *http.Request) {
 	if manCache[r.Host] == "" {		
 		url := proto + r.Host
-		manCache[r.Host] = fmt.Sprintf(man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url, url, formVal, url, url)
+		manCache[r.Host] = fmt.Sprintf(man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url, url, formVal, url, url, formVal, "`", url, url, url )
 	}
 
 	fmt.Fprint(w, manCache[r.Host])
@@ -138,6 +138,12 @@ EXAMPLES
 		%% cat bin/rc/myscript | hpost -u %s -p / %s@/fd/0
 		%s/aXZI
 		%% plumb %s/aXZI
+
+	Paste the file dis/myscript and plumb the link from Inferno:
+
+		; cat dis/myscript | { webgrab -p '%s='^%s{cat /fd/0} -o - %s }
+		%s/aXZI
+		; plumb %s/aXZI
 
 SOURCE
 	https://github.com/ISEAGE-ISU/gopaste
