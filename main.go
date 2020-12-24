@@ -146,5 +146,5 @@ EXAMPLES
 		; plumb %s/aXZI
 
 SOURCE
-	https://github.com/ISEAGE-ISU/gopaste
+	https://github.com/henesy/gopaste
 `
