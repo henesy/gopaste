@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"flag"
@@ -14,15 +15,16 @@ import (
 
 // Global variables
 var (
-	rootPath	string
-	pastePath	string
-	tmplPath	string
-	manTitle	string
-	port		string
-	formVal		string
-	proto		string = "http://"
-	manCache	map[string]string
-	maxB		int64
+	rootPath  string
+	pastePath string
+	tmplPath  string
+	manTitle  string
+	port      string
+	formVal   string
+	proto     string = "http://"
+	manCache  map[string]string
+	typeCache map[string]FileType
+	maxB      int64
 )
 
 // Webpage template
@@ -31,6 +33,15 @@ type Template struct {
 	Body []byte
 	Lang string
 }
+
+type FileType uint8
+
+const (
+	TypeNil FileType = iota
+	TypePlain
+	TypePNG
+	TypeJPEG
+)
 
 // Host a pastebin-like service
 func main() {
@@ -41,9 +52,10 @@ func main() {
 	flag.Int64Var(&maxB, "s", 10000000, "Max file size in bytes")
 	flag.Parse()
 
-	pastePath	= rootPath + "/pastes/"
-	tmplPath	= rootPath + "/static/"
-	manCache	= make(map[string]string)
+	pastePath = rootPath + "/pastes/"
+	tmplPath = rootPath + "/static/"
+	manCache = make(map[string]string)
+	typeCache = make(map[string]FileType)
 
 	r := mux.NewRouter()
 
@@ -64,11 +76,10 @@ func main() {
 
 // Landing page handler
 func handleLand(w http.ResponseWriter, r *http.Request) {
-	if manCache[r.Host] == "" {		
+	if manCache[r.Host] == "" {
 		url := proto + r.Host
-		manCache[r.Host] = fmt.Sprintf(man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url, url, formVal, url, url, formVal, "`", url, url, url )
+		manCache[r.Host] = fmt.Sprintf(man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url, url, formVal, url, url, formVal, "`", url, url, url)
 	}
-
 	fmt.Fprint(w, manCache[r.Host])
 }
 
@@ -101,7 +112,16 @@ func handlePaste(w http.ResponseWriter, r *http.Request) {
 func handleView(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["pasteId"]
-	file := pastePath + key + ".paste"
+	var file string
+	var ext string
+
+	if strings.Contains(key, ".") {
+		spl := strings.Split(key, ".")
+		file = pastePath + spl[0] + ".paste"
+		ext = spl[1]
+	} else {
+		file = pastePath + key + ".paste"
+	}
 
 	paste, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -109,10 +129,76 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "%s", paste)
-	return
+	if ext == "" {
+		// check MIME type
+		var mime FileType
+		if typeCache[key] == TypeNil {
+			b := bytes.NewBuffer(paste)
+			mime, err = getFileType(b)
+			if err != nil {
+				fmt.Fprintf(w, "%s", err)
+				return
+			}
+			typeCache[key] = mime
+		} else {
+			mime = typeCache[key]
+		}
+
+		// redirect plain
+		switch mime {
+		case TypePNG:
+			http.Redirect(w, r, proto+r.Host+"/"+key+".png", 302)
+			return
+		case TypeJPEG:
+			http.Redirect(w, r, proto+r.Host+"/"+key+".jpeg", 302)
+			return
+		case TypePlain:
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			fmt.Fprintf(w, "%s", paste)
+			return
+		}
+	} else {
+		switch ext {
+		case "png":
+			w.Header().Set("Content-Type", "image/png")
+		case "jpeg", "jpg":
+			w.Header().Set("Content-Type", "image/jpeg")
+		}
+
+		fmt.Fprintf(w, "%s", paste)
+		return
+	}
 }
+
+func getFileType(b *bytes.Buffer) (FileType, error) {
+	res, err := isPNG(b)
+	if err != nil {
+		return TypeNil, err
+	}
+	if res {
+		return TypePNG, nil
+	}
+
+	res, err = isJPEG(b)
+	if err != nil {
+		return TypeNil, err
+	}
+	if res {
+		return TypeJPEG, nil
+	}
+
+	return TypePlain, nil
+}
+
+func isPNG(buf *bytes.Buffer) (bool, error) {
+	return bytes.Compare(buf.Bytes()[0:8], []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}) == 0, nil
+}
+func isJPEG(buf *bytes.Buffer) (bool, error) {
+	head := buf.Bytes()[0:2]
+	tail := buf.Bytes()[buf.Len()-2 : buf.Len()]
+	return (bytes.Compare(head, []byte{0xFF, 0xD8}) == 0) && (bytes.Compare(tail, []byte{0xFF, 0xD9}) == 0), nil
+}
+
 
 // Manual for port landing page printing
 const man string = `%s(1)                          %s                          %s(1)
