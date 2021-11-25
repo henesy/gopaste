@@ -6,11 +6,12 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 // Global variables
@@ -41,6 +42,7 @@ const (
 	TypePlain
 	TypePNG
 	TypeJPEG
+	TypeGIF
 )
 
 // Host a pastebin-like service
@@ -130,32 +132,27 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ext == "" {
-		// check MIME type
-		var mime FileType
+		// check file type
+		var ftype FileType
 		if typeCache[key] == TypeNil {
 			b := bytes.NewBuffer(paste)
-			mime, err = getFileType(b)
-			if err != nil {
-				fmt.Fprintf(w, "%s", err)
-				return
-			}
-			typeCache[key] = mime
+			ftype = getFileType(b)
+			typeCache[key] = ftype
 		} else {
-			mime = typeCache[key]
+			ftype = typeCache[key]
 		}
 
 		// redirect plain
-		switch mime {
+		switch ftype {
 		case TypePNG:
 			http.Redirect(w, r, proto+r.Host+"/"+key+".png", 302)
-			return
 		case TypeJPEG:
 			http.Redirect(w, r, proto+r.Host+"/"+key+".jpeg", 302)
-			return
+		case TypeGIF:
+			http.Redirect(w, r, proto+r.Host+"/"+key+".gif", 302)
 		case TypePlain:
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 			fmt.Fprintf(w, "%s", paste)
-			return
 		}
 	} else {
 		switch ext {
@@ -163,6 +160,10 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "image/png")
 		case "jpeg", "jpg":
 			w.Header().Set("Content-Type", "image/jpeg")
+		case "gif":
+			w.Header().Set("Content-Type", "image/gif")
+		default:
+			w.Header().Set("Content-Type", "text/plain; charset=utf=8")
 		}
 
 		fmt.Fprintf(w, "%s", paste)
@@ -170,35 +171,27 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getFileType(b *bytes.Buffer) (FileType, error) {
-	res, err := isPNG(b)
-	if err != nil {
-		return TypeNil, err
-	}
-	if res {
-		return TypePNG, nil
-	}
-
-	res, err = isJPEG(b)
-	if err != nil {
-		return TypeNil, err
-	}
-	if res {
-		return TypeJPEG, nil
-	}
-
-	return TypePlain, nil
+func getFileType(b *bytes.Buffer) FileType {
+	if isPNG(b) { return TypePNG }
+	if isJPEG(b) { return TypeJPEG }
+	if isGIF(b) { return TypeGIF }
+	return TypePlain
 }
 
-func isPNG(buf *bytes.Buffer) (bool, error) {
-	return bytes.Compare(buf.Bytes()[0:8], []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}) == 0, nil
+// TODO: possibly enhance these
+
+func isPNG(buf *bytes.Buffer) bool {
+	return bytes.Compare(buf.Bytes()[0:8], []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}) == 0
 }
-func isJPEG(buf *bytes.Buffer) (bool, error) {
+func isJPEG(buf *bytes.Buffer) bool {
 	head := buf.Bytes()[0:2]
 	tail := buf.Bytes()[buf.Len()-2 : buf.Len()]
-	return (bytes.Compare(head, []byte{0xFF, 0xD8}) == 0) && (bytes.Compare(tail, []byte{0xFF, 0xD9}) == 0), nil
+	return (bytes.Compare(head, []byte{0xFF, 0xD8}) == 0) && (bytes.Compare(tail, []byte{0xFF, 0xD9}) == 0)
 }
-
+func isGIF(buf *bytes.Buffer) bool {
+	head := buf.Bytes()[0:6]
+	return (bytes.Compare(head, []byte{0x47, 0x49, 0x46, 0x38}) == 0) && (head[4] == 0x37 || head[4] == 0x39) && (head[5] == 61)
+}
 
 // Manual for port landing page printing
 const man string = `%s(1)                          %s                          %s(1)
