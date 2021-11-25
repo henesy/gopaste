@@ -1,28 +1,31 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 // Global variables
 var (
-	rootPath	string
-	pastePath	string
-	tmplPath	string
-	manTitle	string
-	port		string
-	formVal		string
-	proto		string = "http://"
-	manCache	map[string]string
-	maxB		int64
+	rootPath  string
+	pastePath string
+	tmplPath  string
+	manTitle  string
+	port      string
+	formVal   string
+	proto     string = "http://"
+	manCache  map[string]string
+	typeCache map[string]FileType
+	maxB      int64
 )
 
 // Webpage template
@@ -31,6 +34,16 @@ type Template struct {
 	Body []byte
 	Lang string
 }
+
+type FileType uint8
+
+const (
+	TypeNil FileType = iota
+	TypePlain
+	TypePNG
+	TypeJPEG
+	TypeGIF
+)
 
 // Host a pastebin-like service
 func main() {
@@ -41,9 +54,10 @@ func main() {
 	flag.Int64Var(&maxB, "s", 10000000, "Max file size in bytes")
 	flag.Parse()
 
-	pastePath	= rootPath + "/pastes/"
-	tmplPath	= rootPath + "/static/"
-	manCache	= make(map[string]string)
+	pastePath = rootPath + "/pastes/"
+	tmplPath = rootPath + "/static/"
+	manCache = make(map[string]string)
+	typeCache = make(map[string]FileType)
 
 	r := mux.NewRouter()
 
@@ -64,11 +78,10 @@ func main() {
 
 // Landing page handler
 func handleLand(w http.ResponseWriter, r *http.Request) {
-	if manCache[r.Host] == "" {		
+	if manCache[r.Host] == "" {
 		url := proto + r.Host
-		manCache[r.Host] = fmt.Sprintf(man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url, url, formVal, url, url, formVal, "`", url, url, url )
+		manCache[r.Host] = fmt.Sprintf(man, strings.ToLower(manTitle), strings.ToUpper(manTitle), strings.ToLower(manTitle), strings.ToLower(manTitle), formVal, url, formVal, url, url, url, url, formVal, url, url, formVal, "`", url, url, url)
 	}
-
 	fmt.Fprint(w, manCache[r.Host])
 }
 
@@ -101,7 +114,16 @@ func handlePaste(w http.ResponseWriter, r *http.Request) {
 func handleView(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["pasteId"]
-	file := pastePath + key + ".paste"
+	var file string
+	var ext string
+
+	if strings.Contains(key, ".") {
+		spl := strings.Split(key, ".")
+		file = pastePath + spl[0] + ".paste"
+		ext = spl[1]
+	} else {
+		file = pastePath + key + ".paste"
+	}
 
 	paste, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -109,9 +131,66 @@ func handleView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "%s", paste)
-	return
+	if ext == "" {
+		// check file type
+		var ftype FileType
+		if typeCache[key] == TypeNil {
+			b := bytes.NewBuffer(paste)
+			ftype = getFileType(b)
+			typeCache[key] = ftype
+		} else {
+			ftype = typeCache[key]
+		}
+
+		// redirect plain
+		switch ftype {
+		case TypePNG:
+			http.Redirect(w, r, proto+r.Host+"/"+key+".png", 302)
+		case TypeJPEG:
+			http.Redirect(w, r, proto+r.Host+"/"+key+".jpeg", 302)
+		case TypeGIF:
+			http.Redirect(w, r, proto+r.Host+"/"+key+".gif", 302)
+		case TypePlain:
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			fmt.Fprintf(w, "%s", paste)
+		}
+	} else {
+		switch ext {
+		case "png":
+			w.Header().Set("Content-Type", "image/png")
+		case "jpeg", "jpg":
+			w.Header().Set("Content-Type", "image/jpeg")
+		case "gif":
+			w.Header().Set("Content-Type", "image/gif")
+		default:
+			w.Header().Set("Content-Type", "text/plain; charset=utf=8")
+		}
+
+		fmt.Fprintf(w, "%s", paste)
+		return
+	}
+}
+
+func getFileType(b *bytes.Buffer) FileType {
+	if isPNG(b) { return TypePNG }
+	if isJPEG(b) { return TypeJPEG }
+	if isGIF(b) { return TypeGIF }
+	return TypePlain
+}
+
+// TODO: possibly enhance these
+
+func isPNG(buf *bytes.Buffer) bool {
+	return bytes.Compare(buf.Bytes()[0:8], []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}) == 0
+}
+func isJPEG(buf *bytes.Buffer) bool {
+	head := buf.Bytes()[0:2]
+	tail := buf.Bytes()[buf.Len()-2 : buf.Len()]
+	return (bytes.Compare(head, []byte{0xFF, 0xD8}) == 0) && (bytes.Compare(tail, []byte{0xFF, 0xD9}) == 0)
+}
+func isGIF(buf *bytes.Buffer) bool {
+	head := buf.Bytes()[0:6]
+	return (bytes.Compare(head, []byte{0x47, 0x49, 0x46, 0x38}) == 0) && (head[4] == 0x37 || head[4] == 0x39) && (head[5] == 61)
 }
 
 // Manual for port landing page printing
